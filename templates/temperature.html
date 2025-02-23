@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Température - Serre Agricole{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sensor-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        height: 100%;
+        margin-bottom: 20px;
+    }
+    .sensor-card:hover {
+        transform: translateY(-5px);
+    }
+    .sensor-value {
+        font-size: 3.5rem;
+        font-weight: bold;
+        color: #2d3436;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .sensor-unit {
+        font-size: 1.5rem;
+        color: #636e72;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-top: 20px;
+    }
+    .connection-status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: bold;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    .connection-status.connected {
+        background-color: #00b894;
+        color: white;
+    }
+    .connection-status.disconnected {
+        background-color: #d63031;
+        color: white;
+    }
+    .esp-message {
+        text-align: center;
+        padding: 20px;
+        background-color: #ffeaa7;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .sensor-info {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .sensor-icon {
+        font-size: 3rem;
+        color: #ff7675;
+        margin-bottom: 15px;
+    }
+    .sensor-stats {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 20px;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+    }
+    .stat-item {
+        text-align: center;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3436;
+    }
+    .stat-label {
+        color: #636e72;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div id="connection-status" class="connection-status {% if sensor_data and sensor_data.is_connected %}connected{% else %}disconnected{% endif %}">
+        <i class="fas fa-plug"></i> 
+        {% if sensor_data and sensor_data.is_connected %}
+            Connecté
+        {% else %}
+            Déconnecté
+        {% endif %}
+    </div>
+
+    {% if not sensor_data or not sensor_data.is_connected %}
+    <div class="esp-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        Veuillez connecter votre ESP pour voir les données des capteurs
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="sensor-card">
+                <div class="sensor-info">
+                    <div class="sensor-icon">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <h2>Température</h2>
+                    <p class="text-muted">Mesure en temps réel de la température</p>
+                </div>
+
+                <div class="sensor-value" id="temperature-value">
+                    {% if sensor_data and sensor_data.is_connected and sensor_data.temperature != None %}
+                        {{ sensor_data.temperature|floatformat:1 }}
+                        <span class="sensor-unit">°C</span>
+                    {% else %}
+                        Données indisponibles
+                    {% endif %}
+                </div>
+
+                <div class="sensor-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="min-temp">--</div>
+                        <div class="stat-label">Minimum</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avg-temp">--</div>
+                        <div class="stat-label">Moyenne</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="max-temp">--</div>
+                        <div class="stat-label">Maximum</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="sensor-card">
+                <h4>Historique de température</h4>
+                <div class="chart-container">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // Configuration du graphique
+    const ctx = document.getElementById('temperatureChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [
+                {% for data in historical_data %}
+                    "{{ data.timestamp|date:'H:i:s' }}",
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Température (°C)',
+                borderColor: '#ff7675',
+                backgroundColor: 'rgba(255, 118, 117, 0.1)',
+                fill: true,
+                data: [
+                    {% for data in historical_data %}
+                        {{ data.temperature|default:"null" }},
+                    {% endfor %}
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Température (°C)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Heure'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Connexion WebSocket
+    const connectWebSocket = () => {
+        const ws = new WebSocket(`ws://${window.location.host}/ws/sensors/`);
+
+        ws.onopen = function() {
+            console.log('WebSocket connecté');
+            updateConnectionStatus(true);
+        };
+
+        ws.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            updateConnectionStatus(data.is_connected);
+            
+            if (data.is_connected) {
+                // Mise à jour de la valeur principale
+                const tempValue = document.getElementById('temperature-value');
+                if (data.temperature !== null) {
+                    tempValue.innerHTML = `${data.temperature.toFixed(1)} <span class="sensor-unit">°C</span>`;
+                } else {
+                    tempValue.textContent = 'Données indisponibles';
+                }
+
+                // Mise à jour du graphique
+                const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                
+                chart.data.labels.push(timestamp);
+                chart.data.datasets[0].data.push(data.temperature);
+
+                if (chart.data.labels.length > 20) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+
+                // Calcul des statistiques
+                const temperatures = chart.data.datasets[0].data.filter(temp => temp !== null);
+                if (temperatures.length > 0) {
+                    const min = Math.min(...temperatures);
+                    const max = Math.max(...temperatures);
+                    const avg = temperatures.reduce((a, b) => a + b) / temperatures.length;
+                    
+                    document.getElementById('min-temp').textContent = `${min.toFixed(1)}°C`;
+                    document.getElementById('max-temp').textContent = `${max.toFixed(1)}°C`;
+                    document.getElementById('avg-temp').textContent = `${avg.toFixed(1)}°C`;
+                }
+
+                chart.update();
+            } else {
+                document.getElementById('temperature-value').textContent = 'Données indisponibles';
+                document.getElementById('min-temp').textContent = '--';
+                document.getElementById('max-temp').textContent = '--';
+                document.getElementById('avg-temp').textContent = '--';
+            }
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket déconnecté. Tentative de reconnexion...');
+            updateConnectionStatus(false);
+            setTimeout(connectWebSocket, 2000);
+        };
+
+        ws.onerror = function(err) {
+            console.error('Erreur WebSocket:', err);
+            updateConnectionStatus(false);
+        };
+    };
+
+    function updateConnectionStatus(isConnected) {
+        const statusElement = document.getElementById('connection-status');
+        const espMessage = document.querySelector('.esp-message');
+        
+        if (isConnected) {
+            statusElement.className = 'connection-status connected';
+            statusElement.innerHTML = '<i class="fas fa-plug"></i> Connecté';
+            if (espMessage) espMessage.style.display = 'none';
+        } else {
+            statusElement.className = 'connection-status disconnected';
+            statusElement.innerHTML = '<i class="fas fa-plug"></i> Déconnecté';
+            if (espMessage) espMessage.style.display = 'block';
+        }
+    }
+
+    // Démarrer la connexion WebSocket
+    connectWebSocket();
+</script>
+{% endblock %}

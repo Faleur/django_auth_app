@@ -1,0 +1,553 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rapport - Serre Agricole{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #00cec9 0%, #81ecec 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 2rem 2rem;
+    }
+    .report-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    .report-card:hover {
+        transform: translateY(-5px);
+    }
+    .report-chart {
+        height: 250px;
+        margin: 1rem 0;
+    }
+    .metric-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: transform 0.3s ease;
+        text-align: center;
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+        background: #ffffff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .metric-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2d3436;
+        margin: 0.5rem 0;
+    }
+    .metric-label {
+        color: #636e72;
+        font-size: 0.9rem;
+    }
+    .alert-card {
+        border-left: 4px solid;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+        border-radius: 0 8px 8px 0;
+        transition: transform 0.3s ease;
+    }
+    .alert-card:hover {
+        transform: translateX(5px);
+    }
+    .alert-card.warning {
+        border-left-color: #ffeaa7;
+    }
+    .alert-card.danger {
+        border-left-color: #ff7675;
+    }
+    .alert-card.success {
+        border-left-color: #00b894;
+    }
+    .recommendation-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .recommendation-card:hover {
+        background: #ffffff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateX(5px);
+    }
+    .recommendation-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: #00b894;
+    }
+    .score-circle {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        background: conic-gradient(#00b894 var(--progress), #f1f2f6 var(--progress));
+        position: relative;
+    }
+    .score-circle::before {
+        content: '';
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: white;
+    }
+    .score-value {
+        position: relative;
+        z-index: 1;
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2d3436;
+    }
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-top: 1rem;
+    }
+    .status-badge.connected {
+        background-color: #00b894;
+        color: white;
+    }
+    .status-badge.disconnected {
+        background-color: #d63031;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header">
+    <div class="container">
+        <h1 class="display-4">Rapport d'analyse</h1>
+        <p class="lead">Analyse détaillée des conditions de votre serre</p>
+        <div id="connection-status" class="status-badge {% if sensor_data and sensor_data.is_connected %}connected{% else %}disconnected{% endif %}">
+            <i class="fas fa-plug"></i> 
+            {% if sensor_data and sensor_data.is_connected %}
+                Système connecté
+            {% else %}
+                Système déconnecté
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% if not sensor_data or not sensor_data.is_connected %}
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        Veuillez connecter votre ESP pour voir les données des capteurs
+    </div>
+    {% endif %}
+
+    <!-- Vue d'ensemble -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="report-card">
+                <h4 class="text-center mb-4">Score global</h4>
+                <div class="score-circle" style="--progress: 85%;">
+                    <div class="score-value" id="global-score">85%</div>
+                </div>
+                <p class="text-center mt-3" id="score-status">Performance optimale</p>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="report-card">
+                <h4>Résumé des conditions</h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon text-danger">
+                                <i class="fas fa-thermometer-half"></i>
+                            </div>
+                            <div class="metric-value" id="avg-temp">
+                                {% if sensor_data and sensor_data.is_connected and sensor_data.temperature != None %}
+                                    {{ sensor_data.temperature|floatformat:1 }}°C
+                                {% else %}
+                                    --°C
+                                {% endif %}
+                            </div>
+                            <div class="metric-label">Température moyenne</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon text-info">
+                                <i class="fas fa-tint"></i>
+                            </div>
+                            <div class="metric-value" id="avg-hum">
+                                {% if sensor_data and sensor_data.is_connected and sensor_data.humidity != None %}
+                                    {{ sensor_data.humidity|floatformat:1 }}%
+                                {% else %}
+                                    --%
+                                {% endif %}
+                            </div>
+                            <div class="metric-label">Humidité moyenne</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon text-warning">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                            <div class="metric-value" id="avg-lux">
+                                {% if sensor_data and sensor_data.is_connected and sensor_data.luminosity != None %}
+                                    {{ sensor_data.luminosity }} lux
+                                {% else %}
+                                    -- lux
+                                {% endif %}
+                            </div>
+                            <div class="metric-label">Luminosité moyenne</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques d'analyse -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="report-card">
+                <h4>Analyse des tendances</h4>
+                <div class="report-chart">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes et recommandations -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="report-card">
+                <h4>Alertes récentes</h4>
+                <div id="alerts-container">
+                    <!-- Les alertes seront ajoutées dynamiquement ici -->
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="report-card">
+                <h4>Recommandations</h4>
+                <div id="recommendations-container">
+                    <!-- Les recommandations seront ajoutées dynamiquement ici -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Configuration du graphique de tendances
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Température (°C)',
+                    borderColor: '#ff7675',
+                    data: [],
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Humidité (%)',
+                    borderColor: '#74b9ff',
+                    data: [],
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Luminosité (lux)',
+                    borderColor: '#ffeaa7',
+                    data: [],
+                    fill: false,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Temps'
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Valeur'
+                    },
+                    grid: {
+                        color: '#f1f2f6'
+                    }
+                }
+            },
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+    // Connexion WebSocket
+    const connectWebSocket = () => {
+        const ws = new WebSocket(`ws://${window.location.host}/ws/sensors/`);
+        let dataHistory = {
+            temperature: [],
+            humidity: [],
+            luminosity: []
+        };
+
+        ws.onopen = function() {
+            console.log('WebSocket connecté');
+            updateConnectionStatus(true);
+        };
+
+        ws.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            updateConnectionStatus(data.is_connected);
+            
+            if (data.is_connected) {
+                // Mise à jour des métriques
+                updateMetrics(data);
+                
+                // Mise à jour de l'historique des données
+                updateDataHistory(data, dataHistory);
+                
+                // Mise à jour du graphique
+                updateChart(dataHistory);
+                
+                // Analyse des données et mise à jour des alertes
+                analyzeData(data, dataHistory);
+                
+                // Mise à jour du score global
+                updateGlobalScore(data);
+            } else {
+                resetValues();
+            }
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket déconnecté. Tentative de reconnexion...');
+            updateConnectionStatus(false);
+            setTimeout(connectWebSocket, 2000);
+        };
+    };
+
+    function updateConnectionStatus(isConnected) {
+        const statusElement = document.getElementById('connection-status');
+        const alertElement = document.querySelector('.alert-warning');
+        
+        if (isConnected) {
+            statusElement.className = 'status-badge connected';
+            statusElement.innerHTML = '<i class="fas fa-plug"></i> Système connecté';
+            if (alertElement) alertElement.style.display = 'none';
+        } else {
+            statusElement.className = 'status-badge disconnected';
+            statusElement.innerHTML = '<i class="fas fa-plug"></i> Système déconnecté';
+            if (alertElement) alertElement.style.display = 'block';
+        }
+    }
+
+    function updateMetrics(data) {
+        if (data.temperature !== null) {
+            document.getElementById('avg-temp').textContent = `${data.temperature.toFixed(1)}°C`;
+        }
+        if (data.humidity !== null) {
+            document.getElementById('avg-hum').textContent = `${data.humidity.toFixed(1)}%`;
+        }
+        if (data.luminosity !== null) {
+            document.getElementById('avg-lux').textContent = `${data.luminosity} lux`;
+        }
+    }
+
+    function updateDataHistory(data, history) {
+        const maxDataPoints = 20;
+        
+        // Ajouter les nouvelles données
+        if (data.temperature !== null) history.temperature.push(data.temperature);
+        if (data.humidity !== null) history.humidity.push(data.humidity);
+        if (data.luminosity !== null) history.luminosity.push(data.luminosity);
+        
+        // Limiter la taille de l'historique
+        if (history.temperature.length > maxDataPoints) history.temperature.shift();
+        if (history.humidity.length > maxDataPoints) history.humidity.shift();
+        if (history.luminosity.length > maxDataPoints) history.luminosity.shift();
+    }
+
+    function updateChart(history) {
+        const timestamps = Array.from({length: history.temperature.length}, (_, i) => 
+            new Date(Date.now() - (history.temperature.length - 1 - i) * 1000).toLocaleTimeString()
+        );
+        
+        chart.data.labels = timestamps;
+        chart.data.datasets[0].data = history.temperature;
+        chart.data.datasets[1].data = history.humidity;
+        chart.data.datasets[2].data = history.luminosity;
+        
+        chart.update();
+    }
+
+    function analyzeData(data, history) {
+        const alertsContainer = document.getElementById('alerts-container');
+        const recommendationsContainer = document.getElementById('recommendations-container');
+        
+        // Réinitialiser les conteneurs
+        alertsContainer.innerHTML = '';
+        recommendationsContainer.innerHTML = '';
+
+        // Analyse de la température
+        if (data.temperature > 30) {
+            addAlert('danger', 'Température trop élevée', `${data.temperature.toFixed(1)}°C`);
+            addRecommendation('Activez la ventilation pour réduire la température');
+        } else if (data.temperature < 15) {
+            addAlert('warning', 'Température basse', `${data.temperature.toFixed(1)}°C`);
+            addRecommendation('Vérifiez le système de chauffage');
+        }
+
+        // Analyse de l'humidité
+        if (data.humidity > 80) {
+            addAlert('danger', 'Humidité excessive', `${data.humidity.toFixed(1)}%`);
+            addRecommendation('Augmentez la ventilation pour réduire l\'humidité');
+        } else if (data.humidity < 30) {
+            addAlert('warning', 'Humidité faible', `${data.humidity.toFixed(1)}%`);
+            addRecommendation('Activez le système d\'humidification');
+        }
+
+        // Analyse de la luminosité
+        if (data.luminosity < 200) {
+            addAlert('warning', 'Luminosité faible', `${data.luminosity} lux`);
+            addRecommendation('Vérifiez l\'éclairage artificiel');
+        }
+
+        // Analyse des tendances
+        if (history.temperature.length > 5) {
+            const tempTrend = calculateTrend(history.temperature.slice(-5));
+            if (tempTrend > 2) {
+                addAlert('warning', 'Tendance température', 'Augmentation rapide');
+                addRecommendation('Surveillez l\'évolution de la température');
+            }
+        }
+    }
+
+    function calculateTrend(values) {
+        if (values.length < 2) return 0;
+        return values[values.length - 1] - values[0];
+    }
+
+    function addAlert(type, title, value) {
+        const alertsContainer = document.getElementById('alerts-container');
+        const alert = document.createElement('div');
+        alert.className = `alert-card ${type}`;
+        alert.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${title}</strong>
+                    <div class="small text-muted">Il y a quelques instants</div>
+                </div>
+                <div class="h5 mb-0">${value}</div>
+            </div>
+        `;
+        alertsContainer.appendChild(alert);
+    }
+
+    function addRecommendation(text) {
+        const recommendationsContainer = document.getElementById('recommendations-container');
+        const recommendation = document.createElement('div');
+        recommendation.className = 'recommendation-card';
+        recommendation.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-lightbulb recommendation-icon"></i>
+                <div>${text}</div>
+            </div>
+        `;
+        recommendationsContainer.appendChild(recommendation);
+    }
+
+    function updateGlobalScore(data) {
+        let score = 100;
+        let status = 'Performance optimale';
+        
+        // Réduire le score en fonction des conditions
+        if (data.temperature < 15 || data.temperature > 30) {
+            score -= 20;
+            status = 'Attention requise';
+        }
+        if (data.humidity < 30 || data.humidity > 80) {
+            score -= 20;
+            status = 'Attention requise';
+        }
+        if (data.luminosity < 200) {
+            score -= 10;
+            status = 'Surveillance conseillée';
+        }
+
+        // Mise à jour du score et du statut
+        const scoreElement = document.getElementById('global-score');
+        const statusElement = document.getElementById('score-status');
+        const scoreCircle = document.querySelector('.score-circle');
+        
+        scoreElement.textContent = `${score}%`;
+        statusElement.textContent = status;
+        scoreCircle.style.setProperty('--progress', `${score}%`);
+    }
+
+    function resetValues() {
+        document.getElementById('avg-temp').textContent = '--°C';
+        document.getElementById('avg-hum').textContent = '--%';
+        document.getElementById('avg-lux').textContent = '-- lux';
+        document.getElementById('global-score').textContent = '--';
+        document.getElementById('score-status').textContent = 'Système déconnecté';
+        document.getElementById('alerts-container').innerHTML = '';
+        document.getElementById('recommendations-container').innerHTML = '';
+        
+        chart.data.labels = [];
+        chart.data.datasets.forEach(dataset => dataset.data = []);
+        chart.update();
+    }
+
+    // Démarrer la connexion WebSocket
+    connectWebSocket();
+</script>
+{% endblock %}

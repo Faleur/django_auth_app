@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Accueil - Serre Agricole{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+<style>
+    .welcome-section {
+        background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+        color: white;
+        padding: 4rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 2rem 2rem;
+    }
+    .sensor-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+    .sensor-card:hover {
+        transform: translateY(-5px);
+    }
+    .sensor-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    .sensor-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 1rem 0;
+        color: #2d3436;
+    }
+    .sensor-unit {
+        font-size: 1rem;
+        color: #636e72;
+    }
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .status-badge.connected {
+        background-color: #00b894;
+        color: white;
+    }
+    .status-badge.disconnected {
+        background-color: #d63031;
+        color: white;
+    }
+    .quick-stats {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+    }
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #2d3436;
+    }
+    .stat-label {
+        color: #636e72;
+        margin-top: 0.5rem;
+    }
+    .alert-esp {
+        background-color: #ffeaa7;
+        border: none;
+        border-radius: 15px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <div class="container">
+        <h1 class="display-4">Bienvenue, {{ user.username }}</h1>
+        <p class="lead">Surveillez votre serre en temps réel</p>
+        <div id="connection-status" class="status-badge {% if sensor_data and sensor_data.is_connected %}connected{% else %}disconnected{% endif %}">
+            <i class="fas fa-plug"></i> 
+            {% if sensor_data and sensor_data.is_connected %}
+                Système connecté
+            {% else %}
+                Système déconnecté
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% if not sensor_data or not sensor_data.is_connected %}
+    <div class="alert-esp" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        Veuillez connecter votre ESP pour voir les données des capteurs
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <!-- Température -->
+        <div class="col-md-4 mb-4">
+            <div class="sensor-card">
+                <h4><i class="fas fa-thermometer-half text-danger"></i> Température</h4>
+                <div class="sensor-value" id="temperature-value">
+                    {% if sensor_data and sensor_data.is_connected and sensor_data.temperature != None %}
+                        {{ sensor_data.temperature|floatformat:1 }}
+                    {% else %}
+                        Données indisponibles
+                    {% endif %}
+                </div>
+                <span class="sensor-unit">°C</span>
+            </div>
+        </div>
+        
+        <!-- Humidité -->
+        <div class="col-md-4 mb-4">
+            <div class="sensor-card">
+                <h4><i class="fas fa-tint text-primary"></i> Humidité</h4>
+                <div class="sensor-value" id="humidity-value">
+                    {% if sensor_data and sensor_data.is_connected and sensor_data.humidity != None %}
+                        {{ sensor_data.humidity|floatformat:1 }}
+                    {% else %}
+                        Données indisponibles
+                    {% endif %}
+                </div>
+                <span class="sensor-unit">%</span>
+            </div>
+        </div>
+        
+        <!-- Luminosité -->
+        <div class="col-md-4 mb-4">
+            <div class="sensor-card">
+                <h4><i class="fas fa-sun text-warning"></i> Luminosité</h4>
+                <div class="sensor-value" id="luminosity-value">
+                    {% if sensor_data and sensor_data.is_connected and sensor_data.luminosity != None %}
+                        {{ sensor_data.luminosity|floatformat:0 }}
+                    {% else %}
+                        Données indisponibles
+                    {% endif %}
+                </div>
+                <span class="sensor-unit">lux</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="sensor-card">
+                <h4>Historique des mesures</h4>
+                <div class="chart-container">
+                    <canvas id="sensorsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-stats">
+        <h2 class="mb-4">Statistiques rapides</h2>
+        <div class="row">
+            <div class="col-md-3 stat-item">
+                <div class="stat-value" id="avg-temp">--</div>
+                <div class="stat-label">Température moyenne</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <div class="stat-value" id="avg-hum">--</div>
+                <div class="stat-label">Humidité moyenne</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <div class="stat-value" id="avg-lux">--</div>
+                <div class="stat-label">Luminosité moyenne</div>
+            </div>
+            <div class="col-md-3 stat-item">
+                <div class="stat-value" id="uptime">--</div>
+                <div class="stat-label">Temps de connexion</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // Configuration du graphique avec les données historiques
+    const ctx = document.getElementById('sensorsChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [
+                {% for data in historical_data %}
+                    "{{ data.timestamp|date:'H:i:s' }}",
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Température (°C)',
+                borderColor: '#ff7675',
+                data: [
+                    {% for data in historical_data %}
+                        {{ data.temperature|default:"null" }},
+                    {% endfor %}
+                ]
+            }, {
+                label: 'Humidité (%)',
+                borderColor: '#74b9ff',
+                data: [
+                    {% for data in historical_data %}
+                        {{ data.humidity|default:"null" }},
+                    {% endfor %}
+                ]
+            }, {
+                label: 'Luminosité (lux)',
+                borderColor: '#ffeaa7',
+                data: [
+                    {% for data in historical_data %}
+                        {{ data.luminosity|default:"null" }},
+                    {% endfor %}
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    function connectWebSocket() {
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/sensor_data/');
+
+        socket.onopen = function(e) {
+            updateConnectionStatus(true);
+        };
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            
+            // Mettre à jour les valeurs des capteurs
+            document.getElementById('temperature-value').textContent = data.temperature !== null ? data.temperature.toFixed(1) : 'Données indisponibles';
+            document.getElementById('humidity-value').textContent = data.humidity !== null ? data.humidity.toFixed(1) : 'Données indisponibles';
+            document.getElementById('luminosity-value').textContent = data.luminosity !== null ? data.luminosity.toFixed(0) : 'Données indisponibles';
+
+            // Mettre à jour l'état de connexion
+            updateConnectionStatus(true);
+
+            // Mettre à jour le graphique
+            updateChartData(data);
+        };
+
+        socket.onclose = function(e) {
+            updateConnectionStatus(false);
+            setTimeout(connectWebSocket, 5000);  // Tentative de reconnexion après 5 secondes
+        };
+    }
+
+    function updateConnectionStatus(isConnected) {
+        const connectionStatus = document.getElementById('connection-status');
+        if (isConnected) {
+            connectionStatus.classList.remove('disconnected');
+            connectionStatus.classList.add('connected');
+            connectionStatus.innerHTML = '<i class="fas fa-plug"></i> Système connecté';
+        } else {
+            connectionStatus.classList.remove('connected');
+            connectionStatus.classList.add('disconnected');
+            connectionStatus.innerHTML = '<i class="fas fa-plug"></i> Système déconnecté';
+        }
+    }
+
+    function updateChartData(data) {
+        // Ajouter les nouvelles données au graphique
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(data.temperature);
+        chart.data.datasets[1].data.push(data.humidity);
+        chart.data.datasets[2].data.push(data.luminosity);
+
+        // Limiter à 20 points
+        if (chart.data.labels.length > 20) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+            chart.data.datasets[1].data.shift();
+            chart.data.datasets[2].data.shift();
+        }
+
+        chart.update();
+    }
+
+    // Démarrer la connexion WebSocket
+    connectWebSocket();
+</script>
+{% endblock %}

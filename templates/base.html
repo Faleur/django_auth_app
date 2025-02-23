@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Serre Agricole - Gestion Intelligente{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #7952b3;
+            --secondary-color: #614092;
+            --success-color: #5cb8a7;
+            --info-color: #8c7ae6;
+            --warning-color: #ffa502;
+            --danger-color: #ff6b81;
+            --dark-color: #2f3640;
+            --text-color: #4a4a4a;
+            --light-bg: #f8f7fc;
+            --white: #fff;
+            --sidebar-width: 250px;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* Sidebar Styles */
+        #sidebar {
+            width: var(--sidebar-width);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        #sidebar .sidebar-header {
+            padding: 1.5rem 1rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #sidebar ul.components {
+            padding: 1rem 0;
+        }
+
+        #sidebar ul li a {
+            padding: 1rem 1.5rem;
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.03rem;
+            border-left: 3px solid transparent;
+        }
+
+        #sidebar ul li a:hover {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--warning-color);
+        }
+
+        #sidebar ul li.active > a {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 3px solid var(--warning-color);
+        }
+
+        /* Content Styles */
+        #content {
+            width: calc(100% - var(--sidebar-width));
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: all 0.3s;
+            padding: 20px;
+        }
+
+        /* Mobile Menu */
+        #sidebarCollapse {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1100;
+            background: var(--primary-color);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: var(--white);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 998;
+            opacity: 0;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                margin-left: calc(-1 * var(--sidebar-width));
+            }
+
+            #sidebar.active {
+                margin-left: 0;
+            }
+
+            #content {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            #sidebarCollapse {
+                display: block;
+            }
+
+            #sidebarCollapse.active {
+                left: calc(var(--sidebar-width) + 15px);
+            }
+        }
+
+        /* Navbar Styles */
+        .topbar {
+            background: var(--white);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            padding: 0.75rem 1.25rem;
+            position: fixed;
+            right: 0;
+            left: var(--sidebar-width);
+            top: 0;
+            z-index: 999;
+        }
+
+        @media (max-width: 768px) {
+            .topbar {
+                left: 0;
+            }
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile:hover {
+            background: rgba(121, 82, 179, 0.05);
+            border-radius: 0.5rem;
+        }
+
+        .user-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.2rem;
+            margin-left: 1rem;
+            box-shadow: 0 2px 10px rgba(121, 82, 179, 0.2);
+        }
+
+        .dropdown-menu {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            padding: 0.7rem 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(121, 82, 179, 0.05);
+            color: var(--primary-color);
+        }
+
+        .dropdown-divider {
+            margin: 0.5rem 0;
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Footer Styles */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            left: var(--sidebar-width);
+            background: linear-gradient(to right, #f8f9fa, #ffffff);
+            padding: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-color);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 999;
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 768px) {
+            .footer {
+                left: 0;
+                padding: 1rem;
+            }
+        }
+
+        .footer-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+
+        .footer-left {
+            border-right: 2px solid rgba(var(--primary-rgb), 0.1);
+            padding-right: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .footer-left {
+                border-right: none;
+                border-bottom: 2px solid rgba(var(--primary-rgb), 0.1);
+                padding-right: 0;
+                padding-bottom: 1rem;
+            }
+        }
+
+        .footer-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer-author {
+            font-size: 1rem;
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-right {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .footer-subtitle {
+            color: var(--text-color);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .footer-university {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(var(--primary-rgb), 0.1);
+            display: grid;
+            gap: 0.25rem;
+        }
+
+        .footer-university-name {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .footer-faculty {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .footer-director {
+            font-style: italic;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* Active menu item */
+        #sidebar ul li a.active {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 3px solid var(--warning-color);
+        }
+
+        /* Adjust content padding for fixed navbar and footer */
+        #content {
+            padding-top: 80px;
+            padding-bottom: 160px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Bouton menu pour mobile -->
+    {% if user.is_authenticated %}
+    <button type="button" id="sidebarCollapse" class="btn">
+        <i class="fas fa-bars"></i>
+    </button>
+    {% endif %}
+
+    <!-- Overlay pour mobile -->
+    <div class="overlay"></div>
+
+    <!-- Navbar -->
+    {% if user.is_authenticated %}
+    <nav class="navbar navbar-expand navbar-light topbar mb-4 static-top">
+        <div class="ms-auto">
+            <div class="nav-item dropdown">
+                <a class="nav-link user-profile" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="d-flex align-items-center">
+                        <div class="d-none d-lg-block">
+                            <div class="font-weight-bold">{{ user.username }}</div>
+                            <div class="text-muted small">Connecté</div>
+                        </div>
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="font-weight-bold">{{ user.username }}</div>
+                        <div class="small text-muted">{{ user.email }}</div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#">
+                        <i class="fas fa-user fa-fw me-2 text-primary"></i>
+                        Profile
+                    </a>
+                    <a class="dropdown-item" href="#">
+                        <i class="fas fa-cog fa-fw me-2 text-primary"></i>
+                        Paramètres
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt fa-fw me-2 text-danger"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Sidebar -->
+    {% if user.is_authenticated %}
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h3 class="m-0"><i class="fas fa-leaf me-2"></i>Serre Agricole</h3>
+        </div>
+
+        <ul class="list-unstyled components">
+            <li>
+                <a href="{% url 'home' %}" {% if request.path == '/' %}class="active"{% endif %}>
+                    <i class="fas fa-home me-2"></i>
+                    <span>Accueil</span>
+                </a>
+            </li>
+
+            <li class="menu-header">
+                <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+                    Surveillance
+                </div>
+            </li>
+            <li>
+                <a href="{% url 'temperature' %}" {% if 'temperature' in request.path %}class="active"{% endif %}>
+                    <i class="fas fa-temperature-high me-2"></i>
+                    <span>Température</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'humidity' %}" {% if 'humidity' in request.path %}class="active"{% endif %}>
+                    <i class="fas fa-tint me-2"></i>
+                    <span>Humidité</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'luminosity' %}" {% if 'luminosity' in request.path %}class="active"{% endif %}>
+                    <i class="fas fa-sun me-2"></i>
+                    <span>Luminosité</span>
+                </a>
+            </li>
+
+            <li class="menu-header">
+                <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+                    Historique
+                </div>
+            </li>
+            <li>
+                <a href="{% url 'history' %}" {% if 'history' in request.path %}class="active"{% endif %}>
+                    <i class="fas fa-history me-2"></i>
+                    <span>Historique</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'reports' %}" {% if 'reports' in request.path %}class="active"{% endif %}>
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span>Rapports</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Content -->
+    <div class="main-content">
+        <div id="content" {% if not user.is_authenticated %}style="width: 100%; margin-left: 0;"{% endif %}>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-title">Travail de Mémoire</div>
+                <div class="footer-author">MULOPO LONZO Faleur</div>
+            </div>
+            <div class="footer-right">
+                <div class="footer-subtitle">
+                    Conception et Impact d'un Système Intelligent pour l'Agriculture Durable : Optimisation du Climat, de l'Irrigation et de la Gestion des Cultures
+                </div>
+                <div class="footer-university">
+                    <div class="footer-university-name">UNIVERSITÉ DE KINSHASA</div>
+                    <div class="footer-faculty">FACULTÉ DES SCIENCES ET TECHNOLOGIES</div>
+                    <div class="footer-faculty">MENTION : MATHÉMATIQUES, STATISTIQUE ET INFORMATIQUE</div>
+                    <div class="footer-director">Directeur : Prof. Dr. Nathanael Kasoro Mulenda</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarCollapse = document.getElementById('sidebarCollapse');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.overlay');
+
+            if (sidebarCollapse) {
+                sidebarCollapse.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    this.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                });
+            }
+
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                sidebarCollapse.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+
+            // Fermer le menu quand on clique sur un lien (sur mobile)
+            const menuLinks = document.querySelectorAll('#sidebar a');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        sidebarCollapse.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

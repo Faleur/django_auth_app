@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Historique - Serre Agricole{% endblock %}
+
+{% block extra_css %}
+<style>
+    .history-header {
+        background: linear-gradient(135deg, #6c5ce7 0%, #a8a4e6 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0 0 2rem 2rem;
+    }
+    .chart-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 1rem;
+    }
+    .filter-section {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .date-picker {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+    .table-container {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .custom-table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 1rem;
+        text-align: left;
+    }
+    .custom-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .custom-table tr:last-child td {
+        border-bottom: none;
+    }
+    .export-btn {
+        background-color: #6c5ce7;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: background-color 0.3s;
+    }
+    .export-btn:hover {
+        background-color: #5b4cc4;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-header">
+    <div class="container">
+        <h1 class="display-4">Historique des données</h1>
+        <p class="lead">Consultez l'historique complet des mesures de votre serre</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Filtres -->
+    <div class="filter-section">
+        <div class="row align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Date de début</label>
+                <input type="date" class="form-control date-picker" id="start-date">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date de fin</label>
+                <input type="date" class="form-control date-picker" id="end-date">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type de données</label>
+                <select class="form-select" id="data-type">
+                    <option value="all">Toutes les données</option>
+                    <option value="temperature">Température</option>
+                    <option value="humidity">Humidité</option>
+                    <option value="luminosity">Luminosité</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn export-btn w-100" onclick="exportData()">
+                    <i class="fas fa-download me-2"></i>Exporter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="chart-card">
+                <h3>Vue d'ensemble</h3>
+                <div class="chart-container">
+                    <canvas id="overviewChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="table-container">
+        <h3 class="mb-4">Données détaillées</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Température</th>
+                    <th>Humidité</th>
+                    <th>Luminosité</th>
+                    <th>État</th>
+                </tr>
+            </thead>
+            <tbody id="history-data">
+                <!-- Les données seront insérées ici dynamiquement -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Configuration du graphique
+    const ctx = document.getElementById('overviewChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Température (°C)',
+                    borderColor: '#ff7675',
+                    data: [],
+                    fill: false
+                },
+                {
+                    label: 'Humidité (%)',
+                    borderColor: '#74b9ff',
+                    data: [],
+                    fill: false
+                },
+                {
+                    label: 'Luminosité (lux)',
+                    borderColor: '#ffeaa7',
+                    data: [],
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Temps'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Valeur'
+                    }
+                }
+            }
+        }
+    });
+
+    // Initialisation des dates
+    const today = new Date();
+    const lastWeek = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('start-date').valueAsDate = lastWeek;
+    document.getElementById('end-date').valueAsDate = today;
+
+    // Fonction pour mettre à jour les données
+    function updateData() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const dataType = document.getElementById('data-type').value;
+
+        // Simuler le chargement des données (à remplacer par un appel API réel)
+        fetch(`/api/history?start=${startDate}&end=${endDate}&type=${dataType}`)
+            .then(response => response.json())
+            .then(data => {
+                updateChart(data);
+                updateTable(data);
+            })
+            .catch(error => console.error('Erreur:', error));
+    }
+
+    // Fonction pour mettre à jour le graphique
+    function updateChart(data) {
+        chart.data.labels = data.map(d => d.timestamp);
+        chart.data.datasets[0].data = data.map(d => d.temperature);
+        chart.data.datasets[1].data = data.map(d => d.humidity);
+        chart.data.datasets[2].data = data.map(d => d.luminosity);
+        chart.update();
+    }
+
+    // Fonction pour mettre à jour le tableau
+    function updateTable(data) {
+        const tbody = document.getElementById('history-data');
+        tbody.innerHTML = '';
+
+        data.forEach(record => {
+            const date = new Date(record.timestamp);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${date.toLocaleDateString()}</td>
+                <td>${date.toLocaleTimeString()}</td>
+                <td>${record.temperature.toFixed(1)}°C</td>
+                <td>${record.humidity.toFixed(1)}%</td>
+                <td>${record.luminosity} lux</td>
+                <td>
+                    <span class="badge ${record.is_connected ? 'bg-success' : 'bg-danger'}">
+                        ${record.is_connected ? 'Connecté' : 'Déconnecté'}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Fonction pour exporter les données
+    function exportData() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        const dataType = document.getElementById('data-type').value;
+
+        // Simuler le téléchargement (à remplacer par un appel API réel)
+        window.location.href = `/api/export?start=${startDate}&end=${endDate}&type=${dataType}`;
+    }
+
+    // Écouteurs d'événements pour les filtres
+    document.getElementById('start-date').addEventListener('change', updateData);
+    document.getElementById('end-date').addEventListener('change', updateData);
+    document.getElementById('data-type').addEventListener('change', updateData);
+
+    // Charger les données initiales
+    updateData();
+</script>
+{% endblock %}

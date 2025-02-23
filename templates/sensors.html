@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Capteurs{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Données des Capteurs</h2>
+<div class="row">
+    <!-- Température -->
+    <div class="col-md-4">
+        <div class="card sensor-card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-thermometer-half"></i> Température</h5>
+                <h2 class="display-4">23.5°C</h2>
+                <p class="card-text">Dernière mise à jour: 12:00</p>
+            </div>
+        </div>
+    </div>
+    <!-- Humidité -->
+    <div class="col-md-4">
+        <div class="card sensor-card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-tint"></i> Humidité</h5>
+                <h2 class="display-4">45%</h2>
+                <p class="card-text">Dernière mise à jour: 12:00</p>
+            </div>
+        </div>
+    </div>
+    <!-- Luminosité -->
+    <div class="col-md-4">
+        <div class="card sensor-card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-sun"></i> Luminosité</h5>
+                <h2 class="display-4">680 lux</h2>
+                <p class="card-text">Dernière mise à jour: 12:00</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphiques -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Évolution sur les dernières 24 heures</h5>
+                <div class="chart-container">
+                    <canvas id="sensorChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+            datasets: [{
+                label: 'Température (°C)',
+                data: [21, 22, 23.5, 24, 23, 22],
+                borderColor: 'rgb(220, 53, 69)',
+                tension: 0.1
+            }, {
+                label: 'Humidité (%)',
+                data: [40, 42, 45, 44, 43, 41],
+                borderColor: 'rgb(23, 162, 184)',
+                tension: 0.1
+            }, {
+                label: 'Luminosité (lux)',
+                data: [400, 500, 680, 720, 600, 450],
+                borderColor: 'rgb(255, 193, 7)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+{% endblock %}
