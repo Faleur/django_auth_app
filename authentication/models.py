@@ -1,19 +1,15 @@
 from django.db import models
-from django.utils import timezone
 
 class SensorData(models.Model):
-    temperature = models.FloatField(null=True, blank=True)
-    humidity = models.FloatField(null=True, blank=True)
-    luminosity = models.FloatField(null=True, blank=True)
-    timestamp = models.DateTimeField(default=timezone.now)
+    temperature = models.FloatField(default=0.0)  # Ajout d'une valeur par défaut
+    humidity = models.FloatField(default=0.0)     # Ajout d'une valeur par défaut
+    luminosity = models.FloatField(default=0.0)   # Ajout d'une valeur par défaut
+    timestamp = models.DateTimeField(auto_now_add=True)
     is_connected = models.BooleanField(default=False)
 
-    class Meta:
-        ordering = ['-timestamp']
-
     def __str__(self):
-        return f"Sensor Data at {self.timestamp}"
+        return f"SensorData({self.temperature}, {self.humidity}, {self.luminosity}, {self.timestamp})"
 
     @classmethod
     def get_latest(cls):
-        return cls.objects.first()
+        return cls.objects.latest('timestamp')

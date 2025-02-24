@@ -10,13 +10,16 @@ from django.utils import timezone
 def sensor_data(request):
     try:
         data = json.loads(request.body)
+        print("🔹 Requête reçue :", data)  # ✅ Debug : afficher la requête
+
         sensor_data = SensorData.objects.create(
             temperature=data.get('temperature'),
             humidity=data.get('humidity'),
-            luminosity=data.get('luminosity'),
+            luminosity=data.get('luminosity', 0.0),  # ✅ Valeur par défaut
             timestamp=timezone.now(),
             is_connected=True
         )
+
         return JsonResponse({
             'status': 'success',
             'message': 'Data received successfully',

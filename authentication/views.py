@@ -6,6 +6,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django import forms
 from datetime import datetime
 from .models import SensorData
+from django.http import JsonResponse
+from .serializers import SensorDataSerializer  # Assurez-vous que cet import est correct
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=False, help_text='Optionnel mais recommandé.')
@@ -50,7 +52,10 @@ def home(request):
         return redirect('login')
     
     # Récupérer les dernières données des capteurs
-    latest_data = SensorData.get_latest()
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
     
     context = {
         'sensor_data': latest_data,
@@ -63,7 +68,10 @@ def dashboard(request):
         return redirect('login')
     
     # Récupérer les dernières données des capteurs
-    latest_data = SensorData.get_latest()
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
     
     # Récupérer l'historique des données (20 derniers points)
     historical_data = SensorData.objects.order_by('-timestamp')[:20]
@@ -76,20 +84,82 @@ def dashboard(request):
     return render(request, 'sensors_dashboard.html', context)
 
 def temperature(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Récupérer les dernières données des capteurs
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
+    
+    # Récupérer l'historique des données (20 derniers points)
+    historical_data = SensorData.objects.exclude(temperature=None).order_by('-timestamp')[:20]
+    
     context = {
-        'current_time': datetime.now().strftime('%H:%M:%S')
+        'sensor_data': latest_data,
+        'historical_data': historical_data,
+        'page': 'temperature'
     }
     return render(request, 'temperature.html', context)
 
 def humidity(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Récupérer les dernières données des capteurs
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
+    
+    # Récupérer l'historique des données (20 derniers points)
+    historical_data = SensorData.objects.exclude(humidity=None).order_by('-timestamp')[:20]
+    
     context = {
-        'current_time': datetime.now().strftime('%H:%M:%S')
+        'sensor_data': latest_data,
+        'historical_data': historical_data,
+        'page': 'humidity'
     }
     return render(request, 'humidity.html', context)
 
-def luminosity(request):
+def temperature(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Récupérer les dernières données des capteurs
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
+    
+    # Récupérer l'historique des données (20 derniers points)
+    historical_data = SensorData.objects.exclude(temperature=None).order_by('-timestamp')[:20]
+    
     context = {
-        'current_time': datetime.now().strftime('%H:%M:%S')
+        'sensor_data': latest_data,
+        'historical_data': historical_data,
+        'page': 'temperature'
+    }
+    return render(request, 'temperature.html', context)
+
+def luminosity(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Récupérer les dernières données des capteurs
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
+    
+    # Récupérer l'historique des données (20 derniers points)
+    historical_data = SensorData.objects.exclude(luminosity=None).order_by('-timestamp')[:20]
+    
+    context = {
+        'sensor_data': latest_data,
+        'historical_data': historical_data,
+        'page': 'luminosity'
     }
     return render(request, 'luminosity.html', context)
 

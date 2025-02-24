@@ -1,3 +1,4 @@
+<!-- filepath: /c:/Users/Faleur/CascadeProjects/django_auth_app/templates/home.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -103,7 +104,15 @@
         </div>
     </div>
 </div>
-
+<h1>Home</h1>
+{% if sensor_data %}
+    <p>Temperature: {{ sensor_data.temperature }}\u00B0C</p>
+    <p>Humidity: {{ sensor_data.humidity }}%</p>
+    <p>Luminosity: {{ sensor_data.luminosity }}</p>
+    <p>Timestamp: {{ sensor_data.timestamp }}</p>
+{% else %}
+    <p>Système déconnecté. Veuillez connecter votre ESP pour voir les données des capteurs.</p>
+{% endif %}
 <div class="container">
     {% if not sensor_data or not sensor_data.is_connected %}
     <div class="alert-esp" role="alert">
@@ -119,12 +128,12 @@
                 <h4><i class="fas fa-thermometer-half text-danger"></i> Température</h4>
                 <div class="sensor-value" id="temperature-value">
                     {% if sensor_data and sensor_data.is_connected and sensor_data.temperature != None %}
-                        {{ sensor_data.temperature|floatformat:1 }}
+                        {{ sensor_data.temperature|floatformat:1 }}\u00B0C
                     {% else %}
                         Données indisponibles
                     {% endif %}
                 </div>
-                <span class="sensor-unit">°C</span>
+                <span class="sensor-unit">\u00B0C</span>
             </div>
         </div>
         
@@ -134,7 +143,7 @@
                 <h4><i class="fas fa-tint text-primary"></i> Humidité</h4>
                 <div class="sensor-value" id="humidity-value">
                     {% if sensor_data and sensor_data.is_connected and sensor_data.humidity != None %}
-                        {{ sensor_data.humidity|floatformat:1 }}
+                        {{ sensor_data.humidity|floatformat:1 }}%
                     {% else %}
                         Données indisponibles
                     {% endif %}
@@ -259,6 +268,20 @@
         socket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             
+            if (data.error) {
+                document.getElementById('connection-status').innerHTML = '<i class="fas fa-plug"></i> ' + data.error;
+                document.getElementById('connection-status').classList.remove('connected');
+                document.getElementById('connection-status').classList.add('disconnected');
+                return;
+            }
+
+            if (data.success) {
+                document.getElementById('connection-status').innerHTML = '<i class="fas fa-plug"></i> ' + data.success;
+                document.getElementById('connection-status').classList.remove('disconnected');
+                document.getElementById('connection-status').classList.add('connected');
+                return;
+            }
+
             // Mettre à jour les valeurs des capteurs
             document.getElementById('temperature-value').textContent = data.temperature !== null ? data.temperature.toFixed(1) : 'Données indisponibles';
             document.getElementById('humidity-value').textContent = data.humidity !== null ? data.humidity.toFixed(1) : 'Données indisponibles';
