@@ -1,4 +1,3 @@
-<!-- filepath: /c:/Users/Faleur/CascadeProjects/django_auth_app/templates/home.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -109,6 +108,7 @@
     <p>Temperature: {{ sensor_data.temperature }}\u00B0C</p>
     <p>Humidity: {{ sensor_data.humidity }}%</p>
     <p>Luminosity: {{ sensor_data.luminosity }}</p>
+    <p>Soil Humidity: {{ sensor_data.soilHumidity }}%</p>
     <p>Timestamp: {{ sensor_data.timestamp }}</p>
 {% else %}
     <p>Système déconnecté. Veuillez connecter votre ESP pour voir les données des capteurs.</p>
@@ -123,7 +123,7 @@
     
     <div class="row">
         <!-- Température -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="sensor-card">
                 <h4><i class="fas fa-thermometer-half text-danger"></i> Température</h4>
                 <div class="sensor-value" id="temperature-value">
@@ -138,7 +138,7 @@
         </div>
         
         <!-- Humidité -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="sensor-card">
                 <h4><i class="fas fa-tint text-primary"></i> Humidité</h4>
                 <div class="sensor-value" id="humidity-value">
@@ -153,7 +153,7 @@
         </div>
         
         <!-- Luminosité -->
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="sensor-card">
                 <h4><i class="fas fa-sun text-warning"></i> Luminosité</h4>
                 <div class="sensor-value" id="luminosity-value">
@@ -164,6 +164,21 @@
                     {% endif %}
                 </div>
                 <span class="sensor-unit">lux</span>
+            </div>
+        </div>
+
+        <!-- Humidité du Sol -->
+        <div class="col-md-3 mb-4">
+            <div class="sensor-card">
+                <h4><i class="fas fa-water text-info"></i> Humidité du Sol</h4>
+                <div class="sensor-value" id="soilHumidity-value">
+                    {% if sensor_data and sensor_data.is_connected and sensor_data.soilHumidity != None %}
+                        {{ sensor_data.soilHumidity|floatformat:1 }}%
+                    {% else %}
+                        Données indisponibles
+                    {% endif %}
+                </div>
+                <span class="sensor-unit">%</span>
             </div>
         </div>
     </div>
@@ -196,8 +211,8 @@
                 <div class="stat-label">Luminosité moyenne</div>
             </div>
             <div class="col-md-3 stat-item">
-                <div class="stat-value" id="uptime">--</div>
-                <div class="stat-label">Temps de connexion</div>
+                <div class="stat-value" id="avg-soilHumidity">--</div>
+                <div class="stat-label">Humidité du Sol moyenne</div>
             </div>
         </div>
     </div>
@@ -239,6 +254,14 @@
                 data: [
                     {% for data in historical_data %}
                         {{ data.luminosity|default:"null" }},
+                    {% endfor %}
+                ]
+            }, {
+                label: 'Humidité du Sol (%)',
+                borderColor: '#00cec9',
+                data: [
+                    {% for data in historical_data %}
+                        {{ data.soilHumidity|default:"null" }},
                     {% endfor %}
                 ]
             }]
@@ -286,6 +309,7 @@
             document.getElementById('temperature-value').textContent = data.temperature !== null ? data.temperature.toFixed(1) : 'Données indisponibles';
             document.getElementById('humidity-value').textContent = data.humidity !== null ? data.humidity.toFixed(1) : 'Données indisponibles';
             document.getElementById('luminosity-value').textContent = data.luminosity !== null ? data.luminosity.toFixed(0) : 'Données indisponibles';
+            document.getElementById('soilHumidity-value').textContent = data.soilHumidity !== null ? data.soilHumidity.toFixed(1) : 'Données indisponibles';
 
             // Mettre à jour l'état de connexion
             updateConnectionStatus(true);
@@ -319,6 +343,7 @@
         chart.data.datasets[0].data.push(data.temperature);
         chart.data.datasets[1].data.push(data.humidity);
         chart.data.datasets[2].data.push(data.luminosity);
+        chart.data.datasets[3].data.push(data.soilHumidity);
 
         // Limiter à 20 points
         if (chart.data.labels.length > 20) {
@@ -326,6 +351,7 @@
             chart.data.datasets[0].data.shift();
             chart.data.datasets[1].data.shift();
             chart.data.datasets[2].data.shift();
+            chart.data.datasets[3].data.shift();
         }
 
         chart.update();

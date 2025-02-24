@@ -385,56 +385,62 @@
             <h3 class="m-0"><i class="fas fa-leaf me-2"></i>Serre Agricole</h3>
         </div>
 
-        <ul class="list-unstyled components">
-            <li>
-                <a href="{% url 'home' %}" {% if request.path == '/' %}class="active"{% endif %}>
-                    <i class="fas fa-home me-2"></i>
-                    <span>Accueil</span>
-                </a>
-            </li>
+     <ul class="list-unstyled components">
+    <li>
+        <a href="{% url 'home' %}" {% if request.path == '/' %}class="active"{% endif %}>
+            <i class="fas fa-home me-2"></i>
+            <span>Accueil</span>
+        </a>
+    </li>
 
-            <li class="menu-header">
-                <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
-                    Surveillance
-                </div>
-            </li>
-            <li>
-                <a href="{% url 'temperature' %}" {% if 'temperature' in request.path %}class="active"{% endif %}>
-                    <i class="fas fa-temperature-high me-2"></i>
-                    <span>Température</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'humidity' %}" {% if 'humidity' in request.path %}class="active"{% endif %}>
-                    <i class="fas fa-tint me-2"></i>
-                    <span>Humidité</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'luminosity' %}" {% if 'luminosity' in request.path %}class="active"{% endif %}>
-                    <i class="fas fa-sun me-2"></i>
-                    <span>Luminosité</span>
-                </a>
-            </li>
+    <li class="menu-header">
+        <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+            Surveillance
+        </div>
+    </li>
+    <li>
+        <a href="{% url 'temperature' %}" {% if 'temperature' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-temperature-high me-2"></i>
+            <span>Température</span>
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'humidity' %}" {% if 'humidity' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-tint me-2"></i>
+            <span>Humidité</span>
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'luminosity' %}" {% if 'luminosity' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-sun me-2"></i>
+            <span>Luminosité</span>
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'soil_humidity' %}" {% if 'soil_humidity' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-water me-2"></i>
+            <span>Humidité du Sol</span>
+        </a>
+    </li>
 
-            <li class="menu-header">
-                <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
-                    Historique
-                </div>
-            </li>
-            <li>
-                <a href="{% url 'history' %}" {% if 'history' in request.path %}class="active"{% endif %}>
-                    <i class="fas fa-history me-2"></i>
-                    <span>Historique</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'reports' %}" {% if 'reports' in request.path %}class="active"{% endif %}>
-                    <i class="fas fa-file-alt me-2"></i>
-                    <span>Rapports</span>
-                </a>
-            </li>
-        </ul>
+    <li class="menu-header">
+        <div class="sidebar-heading px-3 py-2 text-uppercase" style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+            Historique
+        </div>
+    </li>
+    <li>
+        <a href="{% url 'history' %}" {% if 'history' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-history me-2"></i>
+            <span>Historique</span>
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'reports' %}" {% if 'reports' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-file-alt me-2"></i>
+            <span>Rapports</span>
+        </a>
+    </li>
+</ul>
     </nav>
     {% endif %}
 

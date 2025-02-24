@@ -169,5 +169,25 @@ def history(request):
 def reports(request):
     return render(request, 'reports.html')
 
+def soil_humidity(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Récupérer les dernières données des capteurs
+    try:
+        latest_data = SensorData.get_latest()
+    except SensorData.DoesNotExist:
+        latest_data = None
+    
+    # Récupérer l'historique des données (20 derniers points)
+    historical_data = SensorData.objects.exclude(soilHumidity=None).order_by('-timestamp')[:20]
+    
+    context = {
+        'sensor_data': latest_data,
+        'historical_data': historical_data,
+        'page': 'soil_humidity'
+    }
+    return render(request, 'soil_humidity.html', context)
+
 def sensors_dashboard(request):
     return render(request, 'sensors_dashboard.html')
